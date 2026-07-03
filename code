@@ -1,0 +1,99 @@
+{
+  "Comment": "An example of using Bedrock to chain prompts and their responses together.",
+  "StartAt": "ChooseAnimal",
+  "QueryLanguage": "JSONata",
+  "States": {
+    "ChooseAnimal": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Arguments": {
+        "ModelId": "amazon.nova-lite-v1:0",
+        "Body": {
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "text": "Me dê o nome de um animal, escreva apenas uma palavra"
+                }
+              ]
+            }
+          ],
+          "inferenceConfig": {
+            "maxTokens": 250
+          }
+        },
+        "ContentType": "application/json",
+        "Accept": "application/json"
+      },
+      "Next": "Pass1"
+    },
+    "Pass1": {
+      "Type": "Pass",
+      "Assign": {
+        "animal": "{% $states.input.Body.output.message.content[0].text %}"
+      },
+      "Next": "GetSpecies"
+    },
+    "GetSpecies": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Arguments": {
+        "ModelId": "amazon.nova-lite-v1:0",
+        "Body": {
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "text": "{% 'Diga de qual espécie é o animal ' & $animal & ', escreva apenas uma palavra' %}"
+                }
+              ]
+            }
+          ],
+          "inferenceConfig": {
+            "maxTokens": 250
+          }
+        },
+        "ContentType": "application/json",
+        "Accept": "application/json"
+      },
+      "Next": "Pass2"
+    },
+    "Pass2": {
+      "Type": "Pass",
+      "Assign": {
+        "species": "{% $states.input.Body.output.message.content[0].text %}"
+      },
+      "Next": "GetCuriosity"
+    },
+    "GetCuriosity": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::bedrock:invokeModel",
+      "Arguments": {
+        "ModelId": "amazon.nova-lite-v1:0",
+        "Body": {
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "text": "{% 'Diga uma curiosidade do animal ' & $animal & ', escreva algo simples' %}"
+                }
+              ]
+            }
+          ],
+          "inferenceConfig": {
+            "maxTokens": 250
+          }
+        },
+        "ContentType": "application/json",
+        "Accept": "application/json"
+      },
+      "Next": "Success"
+    },
+    "Success": {
+      "Type": "Succeed"
+    }
+  }
+}
